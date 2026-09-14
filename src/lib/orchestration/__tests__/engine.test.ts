@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advanceQueue, createTask, decodeQueue, emptyQueue, roleAgents, ROLES } from '../engine';
+import { advanceQueue, completeStage, createTask, decodeQueue, emptyQueue, roleAgents, ROLES } from '../engine';
 import { publishRoles, subscribeRoles } from '../bridge';
 const task = (id = 'one') => createTask('Подготовить 5 Reels на неделю', id, '2026-09-14T10:00:00Z');
 
@@ -49,6 +49,16 @@ describe('local content pipeline', () => {
     advanceQueue(data);
     expect(data.tasks[0].status).toBe('queued');
     expect(roleAgents(data).every(a => a.id.startsWith('content-role:') && a.pid === null && a.status === 'idle')).toBe(true);
+  });
+  it('stores a real provider result and its actual token use only after the responding phase', () => {
+    let data = emptyQueue(); data.tasks.push(task());
+    data = advanceQueue(data); data = advanceQueue(data);
+    const completed = completeStage(data, 'Реальный результат', { model: 'gpt-5.2', inputTokens: 12, outputTokens: 34 });
+    expect(completed.tasks[0].results.Researcher).toBe('Реальный результат');
+    expect(completed.tasks[0].usage?.Researcher).toEqual({ model: 'gpt-5.2', inputTokens: 12, outputTokens: 34 });
+    expect(roleAgents(completed)[0]).toMatchObject({ tokensIn: 12, tokensOut: 34, model: 'gpt-5.2' });
+    expect(() => completeStage(data, '')).toThrow();
+    expect(() => decodeQueue(JSON.stringify({ version: 1, tasks: [{ ...completed.tasks[0], usage: { Researcher: { model: 'gpt-5.2', inputTokens: -1, outputTokens: 0 } } }] }))).toThrow();
   });
   it('replays roles to late renderer subscribers and cleans up subscriptions', () => {
     const agents = roleAgents(emptyQueue()); publishRoles(agents);

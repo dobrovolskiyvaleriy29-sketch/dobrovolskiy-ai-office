@@ -4,6 +4,7 @@
 #[macro_use]
 mod logger;
 mod content_queue;
+mod openai;
 mod discovery;
 mod error;
 mod interceptor;
@@ -61,6 +62,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             content_queue::load_content_queue,
             content_queue::save_content_queue,
+            openai::get_openai_settings,
+            openai::save_openai_settings,
+            openai::delete_openai_api_key,
+            openai::run_openai_content_role,
             get_all_agents,
             get_agent,
             get_config,

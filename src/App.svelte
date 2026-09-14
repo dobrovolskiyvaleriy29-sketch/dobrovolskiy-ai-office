@@ -1,6 +1,7 @@
 <script lang="ts">
   import TasksPanel from "$lib/ui/TasksPanel.svelte";
   import { initQueue, destroyQueue } from "$lib/orchestration/queue.svelte";
+  import { initOpenAi } from "$lib/orchestration/openai.svelte";
   import { onMount } from "svelte";
   import { initAgentsStore } from "$lib/stores/agents.svelte";
   import { initSettingsStore } from "$lib/stores/settings.svelte";
@@ -43,6 +44,7 @@
     const startup = async () => {
       await initAgentsStore();
       await initQueue();
+      await initOpenAi();
 
       const canvas = document.getElementById("office-canvas");
       if (canvas) {

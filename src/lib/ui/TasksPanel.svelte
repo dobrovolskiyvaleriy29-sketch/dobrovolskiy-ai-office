@@ -2,6 +2,7 @@
   import { queue, addTask, startQueue, pauseQueue } from '$lib/orchestration/queue.svelte';
   import { ROLES, roleAgents } from '$lib/orchestration/engine';
   import { selectAgent } from '$lib/stores/office.svelte';
+  import { openai } from '$lib/orchestration/openai.svelte';
   let open = $state(true);
   let title = $state('Подготовить 5 Reels на неделю');
   let selected = $state('');
@@ -19,7 +20,7 @@
 </button>
 {#if open}
   <section id="content-panel" class="content-panel" aria-label="Задачи контент-команды">
-    <header><div><h1>Контент-команда</h1><p>Локальное демо · без платных API</p></div><span class="version">v0.1</span></header>
+    <header><div><h1>Контент-команда</h1><p>{openai.available ? `OpenAI · ${openai.settings.model}` : 'Локальное демо · без платных API'}</p></div><span class="version">v0.2</span></header>
     <div class="role-grid">
       {#each roles as role}
         <button class="role" onclick={() => selectAgent(role.id)} title="Показать агента в офисе">
@@ -56,7 +57,7 @@
         {#if !Object.keys(task.results).length}<p class="empty">Результат появится после первого этапа.</p>{/if}
       </article>
     {/if}
-    <footer>Сохраняется локально. После перезапуска нажмите «Запустить очередь».<br/>На основе OfficeAI · Roman Dykyi · MIT</footer>
+    <footer>Сохраняется локально. После перезапуска нажмите «Запустить очередь». {openai.available ? 'Ответы генерируются через OpenAI.' : 'Добавьте ключ в Настройки → OpenAI для реальных ответов.'}<br/>На основе OfficeAI · Roman Dykyi · MIT</footer>
   </section>
 {/if}
 

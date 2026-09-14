@@ -1,13 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { emptyQueue } from '../engine';
 const storage = vi.hoisted(() => ({ loadQueue: vi.fn(), saveQueue: vi.fn() }));
+const provider = vi.hoisted(() => ({ openai: { available: false }, runOpenAiStage: vi.fn() }));
 vi.mock('../storage', () => storage);
+vi.mock('../openai.svelte', () => provider);
 
 describe('durable queue runner', () => {
   beforeEach(() => {
     vi.resetModules(); vi.useFakeTimers();
     storage.loadQueue.mockReset().mockResolvedValue(emptyQueue());
     storage.saveQueue.mockReset().mockResolvedValue(undefined);
+    provider.openai.available = false;
+    provider.runOpenAiStage.mockReset();
   });
   afterEach(() => vi.useRealTimers());
   it('does not double-start, pauses, and completes after resuming', async () => {
@@ -43,6 +47,17 @@ describe('durable queue runner', () => {
     expect(q.queue.ready).toBe(false);
     expect(storage.saveQueue).not.toHaveBeenCalled();
     expect(q.queue.error).toContain('Corrupt queue');
+    q.destroyQueue();
+  });
+  it('calls OpenAI only at responding and commits its result after it returns', async () => {
+    provider.openai.available = true;
+    provider.runOpenAiStage.mockResolvedValue({ result: 'Реальный ответ', model: 'gpt-5.2', inputTokens: 5, outputTokens: 8 });
+    const q = await import('../queue.svelte');
+    await q.initQueue(); await q.addTask('Demo'); await q.startQueue();
+    await vi.advanceTimersByTimeAsync(4500);
+    expect(provider.runOpenAiStage).toHaveBeenCalledWith('Researcher', 'Demo', {});
+    expect(q.queue.data.tasks[0].results.Researcher).toBe('Реальный ответ');
+    expect(q.queue.data.tasks[0].usage?.Researcher).toMatchObject({ model: 'gpt-5.2', inputTokens: 5, outputTokens: 8 });
     q.destroyQueue();
   });
 });

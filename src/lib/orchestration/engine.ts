@@ -10,10 +10,19 @@ export interface ContentTask {
   status: 'queued' | 'running' | 'complete';
   phase: Phase;
   results: Partial<Record<Role, string>>;
+  usage?: Partial<Record<Role, { model: string; inputTokens: number; outputTokens: number }>>;
   createdAt: string;
 }
 export interface QueueData { version: 1; tasks: ContentTask[] }
 export const emptyQueue = (): QueueData => ({ version: 1, tasks: [] });
+
+function isUsage(value: unknown): value is { model: string; inputTokens: number; outputTokens: number } {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.model === 'string'
+    && Number.isSafeInteger(record.inputTokens) && Number(record.inputTokens) >= 0
+    && Number.isSafeInteger(record.outputTokens) && Number(record.outputTokens) >= 0;
+}
 
 export function createTask(title: string, id: string, now: string): ContentTask {
   const clean = title.trim();
@@ -35,7 +44,9 @@ export function decodeQueue(raw: string): QueueData {
       || !['thinking', 'responding', 'task_complete'].includes(task.phase)
       || typeof task.createdAt !== 'string' || !Number.isFinite(Date.parse(task.createdAt))
       || !task.results || typeof task.results !== 'object' || Array.isArray(task.results)
-      || Object.entries(task.results).some(([k, v]) => !ROLES.includes(k as Role) || typeof v !== 'string')) {
+      || Object.entries(task.results).some(([k, v]) => !ROLES.includes(k as Role) || typeof v !== 'string')
+      || (task.usage !== undefined && (typeof task.usage !== 'object' || Array.isArray(task.usage)
+        || Object.entries(task.usage).some(([role, usage]) => !ROLES.includes(role as Role) || !isUsage(usage))))) {
       throw new Error('Повреждены данные задачи. Исходная очередь сохранена.');
     }
     if (task.status === 'running') active++;
@@ -67,11 +78,21 @@ export function advanceQueue(data: QueueData): QueueData {
   if (!task) return next;
   if (task.status === 'queued') { task.status = 'running'; task.phase = 'thinking'; }
   else if (task.phase === 'thinking') task.phase = 'responding';
-  else if (task.phase === 'responding') {
-    task.results[ROLES[task.stage]] = mockResult(task);
-    task.phase = 'task_complete';
-    if (task.stage === ROLES.length - 1) task.status = 'complete';
-  } else { task.stage++; task.phase = 'thinking'; }
+  else if (task.phase === 'responding') return completeStage(next, mockResult(task));
+  else { task.stage++; task.phase = 'thinking'; }
+  return next;
+}
+
+/** Persist an externally generated result only after the provider call succeeded. */
+export function completeStage(data: QueueData, result: string, usage?: { model: string; inputTokens: number; outputTokens: number }): QueueData {
+  const next = structuredClone(data);
+  const task = next.tasks.find(t => t.status === 'running');
+  if (!task || task.phase !== 'responding' || !result.trim()) throw new Error('Невозможно завершить текущий этап.');
+  const role = ROLES[task.stage];
+  task.results[role] = result;
+  if (usage) task.usage = { ...task.usage, [role]: usage };
+  task.phase = 'task_complete';
+  if (task.stage === ROLES.length - 1) task.status = 'complete';
   return next;
 }
 
@@ -84,9 +105,9 @@ export function roleAgents(data: QueueData): AgentState[] {
     let status: Status = 'idle';
     if (current?.stage === stage) status = current.phase;
     else if (task?.results[role]) status = 'task_complete';
-    return { id: `content-role:${role}`, pid: null, name: role, model: 'local-mock',
+    return { id: `content-role:${role}`, pid: null, name: role, model: task?.usage?.[role]?.model ?? 'local-mock',
       tier: tiers[stage], role, status, idleLocation: 'desk', currentTask: task ? `${task.title}\n${task.results[role] ?? 'Ожидает результата этапа'}` : null,
-      tokensIn: 0, tokensOut: 0, subAgents: [], lastActivity: task?.createdAt ?? '2026-01-01T00:00:00Z',
+      tokensIn: task?.usage?.[role]?.inputTokens ?? 0, tokensOut: task?.usage?.[role]?.outputTokens ?? 0, subAgents: [], lastActivity: task?.createdAt ?? '2026-01-01T00:00:00Z',
       startedAt: task?.createdAt ?? '2026-01-01T00:00:00Z', source: 'sdk_hook' };
   });
 }

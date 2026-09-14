@@ -1,6 +1,7 @@
-import { advanceQueue, createTask, emptyQueue, roleAgents, type QueueData } from './engine';
+import { advanceQueue, completeStage, createTask, emptyQueue, roleAgents, ROLES, type QueueData } from './engine';
 import { loadQueue, saveQueue } from './storage';
 import { publishRoles } from './bridge';
+import { openai, runOpenAiStage } from './openai.svelte';
 let data = $state<QueueData>(emptyQueue());
 let ready = $state(false);
 let running = $state(false);
@@ -24,7 +25,14 @@ function schedule() {
   if (!running || disposed) return;
   timer = setTimeout(() => { void serialize(async () => {
     if (!running || disposed) return;
-    await commit(advanceQueue($state.snapshot(data)));
+    const snapshot = $state.snapshot(data);
+    const current = snapshot.tasks.find(task => task.status === 'running');
+    if (current?.phase === 'responding' && openai.available) {
+      const generated = await runOpenAiStage(ROLES[current.stage], current.title, current.results);
+      await commit(completeStage(snapshot, generated.result, generated));
+    } else {
+      await commit(advanceQueue(snapshot));
+    }
     if (data.tasks.every(t => t.status === 'complete')) stop();
     else schedule();
   }); }, 1500);
