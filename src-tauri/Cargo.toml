@@ -1,7 +1,7 @@
 [package]
 name = "office-ai"
 version = "0.1.0"
-description = "OfficeAI — desktop app for visualizing AI agents as office employees"
+description = "Dobrovolskiy AI Office — local content team, based on OfficeAI (MIT)"
 authors = ["OfficeAI Team"]
 edition = "2021"
 
@@ -10,7 +10,7 @@ name = "office_ai_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [[bin]]
-name = "OfficeAI"
+name = "DobrovolskiyAIOffice"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -29,6 +29,8 @@ tokio = { version = "1", features = ["full"] }
 dirs = "6"
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1"
+keyring = { version = "3", features = ["apple-native"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 
 [dev-dependencies]
 tempfile = "3"

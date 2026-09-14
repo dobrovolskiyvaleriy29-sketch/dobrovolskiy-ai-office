@@ -3,13 +3,13 @@
 
 import {
   Application,
-  Assets,
   Container,
   Graphics,
   Sprite,
   Spritesheet,
   Texture,
 } from "pixi.js";
+import { subscribeRoles, isContentRole, latestRole } from "$lib/orchestration/bridge";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { AgentState, Status, Tier } from "$lib/types/agent";
@@ -224,6 +224,12 @@ export class OfficeScene {
 
     // Load existing agents from backend (supports page reload)
     await this.loadExistingAgents();
+    this.unlisteners.push(subscribeRoles(roles => {
+      for (const role of roles) {
+        if (this.agentSprites.has(role.id)) this.onAgentStateChanged(role);
+        else this.restoreAgent(role);
+      }
+    }));
 
     // Centre the camera on the layout
     this.camera.centerOn(
@@ -468,7 +474,7 @@ export class OfficeScene {
       );
       this.npcManager.setup(
         this.pathfinder,
-        (zoneType) => zonePositions.get(zoneType) ?? null
+        (zoneType) => isValidZoneType(zoneType) ? zonePositions.get(zoneType) ?? null : null
       );
       const npcSprites = this.npcManager.spawnNpcs(
         json.npcs,
@@ -682,7 +688,7 @@ export class OfficeScene {
 
     // Enforce maxAgents limit
     const maxAgents = getSetting("maxAgents");
-    if (this.agentSprites.size >= maxAgents) return;
+    if (!isContentRole(agent.id) && [...this.agentSprites.keys()].filter(id => !isContentRole(id)).length >= maxAgents) return;
 
     this.maybeSwitchLayout(this.agentSprites.size + 1);
 
@@ -694,7 +700,7 @@ export class OfficeScene {
     // Spawn at entrance
     sprite.snapToGrid({ ...this.entrancePos });
 
-    if (WORK_STATUSES.has(agent.status)) {
+    if (WORK_STATUSES.has(agent.status) || (isContentRole(agent.id) && agent.status === "task_complete")) {
       // Agent was working — walk to desk
       this.moveAgentToDesk(agent.id, sprite, agent);
     } else {
@@ -715,7 +721,7 @@ export class OfficeScene {
 
     // Enforce maxAgents limit
     const maxAgents = getSetting("maxAgents");
-    if (this.agentSprites.size >= maxAgents) return;
+    if (!isContentRole(agent.id) && [...this.agentSprites.keys()].filter(id => !isContentRole(id)).length >= maxAgents) return;
 
     // Check if we need to switch layout based on agent count
     this.maybeSwitchLayout(this.agentSprites.size + 1);
@@ -789,7 +795,7 @@ export class OfficeScene {
     }
 
     const location = this.agentLocation.get(agent.id);
-    const isWork = WORK_STATUSES.has(agent.status);
+    const isWork = WORK_STATUSES.has(agent.status) || (isContentRole(agent.id) && agent.status === "task_complete");
     const isIdle = IDLE_STATUSES.has(agent.status);
 
     if ((location === "idle_zone" || location === "walking_to_idle") && isWork) {
@@ -898,7 +904,7 @@ export class OfficeScene {
       sprite.walkAlongPath(path, () => {
         sprite.snapToGrid(walkTarget, DESK_SEAT_OFFSET);
         this.agentLocation.set(agentId, "desk");
-        sprite.update(agent);
+        sprite.update(latestRole(agentId) ?? agent);
         showBubble();
       });
     } else {

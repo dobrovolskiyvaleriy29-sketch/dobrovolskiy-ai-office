@@ -1,4 +1,7 @@
 <script lang="ts">
+  import TasksPanel from "$lib/ui/TasksPanel.svelte";
+  import { initQueue, destroyQueue } from "$lib/orchestration/queue.svelte";
+  import { initOpenAi } from "$lib/orchestration/openai.svelte";
   import { onMount } from "svelte";
   import { initAgentsStore } from "$lib/stores/agents.svelte";
   import { initSettingsStore } from "$lib/stores/settings.svelte";
@@ -40,6 +43,8 @@
 
     const startup = async () => {
       await initAgentsStore();
+      await initQueue();
+      await initOpenAi();
 
       const canvas = document.getElementById("office-canvas");
       if (canvas) {
@@ -58,6 +63,7 @@
     return () => {
       window.removeEventListener("office:select-agent", onAgentSelect);
       destroySoundBridge();
+      destroyQueue();
       scene?.destroy();
       scene = null;
     };
@@ -67,7 +73,7 @@
 <svelte:window onkeydown={onKeydown} />
 
 <!-- PixiJS canvas container — renderer mounts here -->
-<div id="office-canvas" aria-label="OfficeAI visualization" role="img"></div>
+<div id="office-canvas" aria-label="Dobrovolskiy AI Office visualization" role="img"></div>
 
 <!-- UI Overlay layer — all Svelte components sit above the canvas -->
 <div class="overlay-root" aria-label="UI overlay" role="region">
@@ -102,6 +108,8 @@
   </button>
 
 </div>
+
+<TasksPanel />
 
 <!-- Agent sidebar (slide-in from right) -->
 <AgentSidebar />

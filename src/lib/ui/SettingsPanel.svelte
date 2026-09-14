@@ -2,6 +2,7 @@
   import { getSettings, setSetting } from "$lib/stores/index.svelte";
   import { t, SUPPORTED_LOCALES } from "$lib/i18n/index";
   import type { Locale } from "$lib/i18n/translations";
+  import { deleteOpenAiKey, openai, saveOpenAi } from "$lib/orchestration/openai.svelte";
 
   interface Props {
     open: boolean;
@@ -20,7 +21,7 @@
   }
 
   // Active section tab
-  let activeSection = $state<"general" | "discovery" | "display">(
+  let activeSection = $state<"general" | "openai" | "discovery" | "display">(
     "general",
   );
 
@@ -40,14 +41,23 @@
     }
   }
 
-  const SECTION_IDS = ["general", "discovery", "display"] as const;
+  const SECTION_IDS = ["general", "openai", "discovery", "display"] as const;
   type SectionId = (typeof SECTION_IDS)[number];
 
   const SECTION_KEYS: Record<SectionId, Parameters<typeof t>[0]> = {
     general: "settings.general",
+    openai: "settings.general",
     discovery: "settings.discovery",
     display: "settings.display",
   };
+
+  let apiKey = $state("");
+  let model = $state("gpt-5.2");
+  let saved = $state("");
+  $effect(() => { model = openai.settings.model; });
+  async function saveProvider(): Promise<void> {
+    if (await saveOpenAi(model, apiKey)) { apiKey = ""; saved = "Настройки OpenAI сохранены в Keychain macOS."; }
+  }
 </script>
 
 <svelte:window onkeydown={onKeydown} />
@@ -85,7 +95,7 @@
           onclick={() => (activeSection = sectionId)}
           aria-selected={activeSection === sectionId}
           role="tab"
-        >{t(SECTION_KEYS[sectionId])}</button>
+        >{sectionId === "openai" ? "OpenAI" : t(SECTION_KEYS[sectionId])}</button>
       {/each}
     </nav>
 
@@ -136,6 +146,28 @@
             </label>
           </div>
 
+        </fieldset>
+      {/if}
+
+      {#if activeSection === "openai"}
+        <fieldset class="settings-section">
+          <legend class="section-title">OpenAI Responses API</legend>
+          <p class="provider-note">Ключ хранится только в Keychain macOS. Он не записывается в задачи, конфиг или репозиторий.</p>
+          <div class="setting-row setting-row--column">
+            <label for="openai-model" class="setting-label">Модель</label>
+            <input id="openai-model" class="input" bind:value={model} maxlength="100" placeholder="gpt-5.2" />
+          </div>
+          <div class="setting-row setting-row--column">
+            <label for="openai-key" class="setting-label">API-ключ {openai.settings.apiKeyConfigured ? "· сохранён" : "· не задан"}</label>
+            <input id="openai-key" class="input" type="password" bind:value={apiKey} autocomplete="off" placeholder={openai.settings.apiKeyConfigured ? "Введите новый ключ, чтобы заменить" : "sk-…"} />
+          </div>
+          <div class="provider-actions">
+            <button class="bug-report-btn" onclick={() => void saveProvider()} disabled={openai.loading || !model.trim()}>{openai.loading ? "Сохранение…" : "Сохранить OpenAI"}</button>
+            {#if openai.settings.apiKeyConfigured}<button class="bug-report-btn danger" onclick={() => void deleteOpenAiKey()} disabled={openai.loading}>Удалить ключ</button>{/if}
+          </div>
+          {#if saved}<p class="provider-success">{saved}</p>{/if}
+          {#if openai.error}<p class="provider-error" role="alert">{openai.error}</p>{/if}
+          <p class="provider-note">После сохранения очередь автоматически использует OpenAI на стадии <code>responding</code>. Без ключа остаётся в режиме демо.</p>
         </fieldset>
       {/if}
 
@@ -555,4 +587,11 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+
+  .provider-note, .provider-success, .provider-error { font-size: 11px; line-height: 1.5; margin: 0 0 10px; }
+  .provider-note { color: var(--color-text-muted); }
+  .provider-success { color: #78d6ad; }
+  .provider-error { color: #ff9e9e; overflow-wrap: anywhere; }
+  .provider-actions { display: flex; gap: 8px; padding-top: 12px; }
+  .danger { color: #ffb0b0; }
 </style>
