@@ -1,417 +1,92 @@
-<p align="center">
-  <img src="images/icon.png" width="120" alt="OfficeAI" />
-</p>
+# Dobrovolskiy AI Office — v0.1
 
-<p align="center">
-  <img src="https://img.shields.io/badge/status-active%20development-brightgreen?style=for-the-badge" alt="Status" />
-  <img src="https://img.shields.io/badge/version-0.6.0-blue?style=for-the-badge" alt="Version" />
-  <img src="https://img.shields.io/badge/tauri-v2-orange?style=for-the-badge" alt="Tauri" />
-  <img src="https://img.shields.io/badge/svelte-5-red?style=for-the-badge" alt="Svelte" />
-  <img src="https://img.shields.io/badge/pixi.js-v8-purple?style=for-the-badge" alt="PixiJS" />
-  <img src="https://img.shields.io/badge/tests-~672-green?style=for-the-badge" alt="Tests" />
-</p>
+Локальная контент-команда внутри визуального офиса **OfficeAI**. Сохранены Tauri 2, Svelte 5, PixiJS и пассивный мониторинг Codex, Claude, Gemini, Cursor и Windsurf. Надстройка работает без платных API и внешнего сервера.
 
-<p align="center">
-  <a href="https://dykyi-roman.github.io/projects/office-ai/index.html"><b>🌐 Website</b></a> · <a href="https://github.com/dykyi-roman/office-ai"><b>GitHub</b></a>
-</p>
+## Быстрый запуск
 
-<h1 align="center">OfficeAI</h1>
+Нужны Node.js 22+, npm и (для desktop) Rust/Cargo и системные зависимости Tauri. На macOS нужны Xcode Command Line Tools (`xcode-select --install`).
 
-<p align="center">
-  <b>Desktop app that turns your AI agents into employees of a virtual isometric office</b>
-</p>
-
-<p align="center">
-  Every running AI agent (Claude Code, Gemini CLI, Codex CLI, ChatGPT, ...) appears as an animated character in a 2D isometric office. Install, open — see all your agents in real time. Zero changes to your CLI workflow required.
-</p>
-
----
-
-## Contents
-
-- [Quick Start](#quick-start)
-- [Basic Usage](#basic-usage)
-- [Concept](#concept)
-- [App Tour](#app-tour)
-- [How It Works](#how-it-works)
-- [Model Tiers](#model-tiers)
-- [Agent Lifecycle](#agent-lifecycle)
-- [Idle Zones](#idle-zones)
-- [Agent Discovery](#agent-discovery)
-- [Browser Extension](#browser-extension)
-- [IDE Support](#ide-support)
-- [Troubleshooting](#troubleshooting)
-- [Non-Goals](#non-goals)
-- [Roadmap](#roadmap)
-- [Commands](#commands)
-- [Tech Stack](#tech-stack)
-- [Cross-Platform Support](#cross-platform-support)
-- [Documentation](#documentation)
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) >= 22
-- [Rust](https://rustup.rs/) >= 1.75
-- System dependencies for [Tauri v2](https://tauri.app/start/prerequisites/)
-
-### Install & Run
-
-```bash
-make install
-make dev
+```sh
+npm ci
+npm run tauri:dev
 ```
 
-The app opens in a native 1280x800 window. The Rust backend automatically starts scanning processes and logs.
+Для демо в браузере:
 
----
-
-## Basic Usage
-
-1. **Launch OfficeAI:** Start the app using `make dev` or open the installed binary.
-2. **Run your AI Agent:** Open a **separate terminal** and start your preferred agent (e.g., `claude`, `gemini-cli`, or `codex`).
-3. **Watch the Office:** OfficeAI will automatically detect the new process. An employee character will appear, walk to their assigned desk, and begin reflecting the agent's real-time state (thinking, typing, or using tools).
-4. **Interact:** Hover over agents to see their latest response or click the status bar to see a full list of active employees.
-
----
-
-## Concept
-
-Each running AI agent is mapped to an animated office employee in a 2D isometric scene.
-
-**Key principles:**
-
-- **1 agent = 1 person** — each AI agent process maps to a virtual employee
-- **Agent naming** — `{model name}-{PID}`, e.g. `claude-423235`, `gemini-23512`, `codex-54321`, `chatgpt-78901`
-- **Open space** — every agent has a personal desk
-- **Zero-intrusion** — the app never modifies or wraps CLI agents
-- **Auto-discovery** — the system detects running agents automatically
-
----
-
-## App Tour
-
-A quick walkthrough of what you see when you use OfficeAI.
-
-<p align="center"><img src="images/office_map.png" width="700" alt="Full office view"></p>
-
-**Your AI agents, visualized as office employees.** When you open OfficeAI, you see a full isometric office floor. Each running AI agent occupies its own desk. The status bar at the bottom shows the total agent count, and the settings button is in the top-left corner.
-
-<p align="center"><img src="images/agent_is_working.png" width="350" alt="Working agent with bouncing balls"></p>
-
-**Bouncing balls mean the agent is busy.** Colored balls appear above an agent's head when it is actively thinking, responding, or using tools. The ball color reflects the model tier — gold for expert models, blue for senior, and so on.
-
-<p align="center"><img src="images/agent_is_idle.png" width="350" alt="Idle agent roaming the office"></p>
-
-**No balls — the agent is free.** When an agent finishes its task, the balls disappear and the character leaves its desk to roam the office — visiting the water cooler, sofa, or kitchen. The process is still running, just waiting for your next prompt.
-
-<p align="center"><img src="images/tool_tip_message.png" width="350" alt="Speech bubble with agent response"></p>
-
-**Speech bubbles show what agents are saying.** Hover over a working agent to see a preview of its response right inside the office, without switching to your terminal or browser.
-
-<p align="center"><img src="images/cancelled_request.png" width="400" alt="Cancelled request visualization"></p>
-
-**Cancellations are detected in real-time.** If you interrupt an agent's task in your terminal (Ctrl+C), OfficeAI detects this state change instantly. The agent stops its current activity and returns to its idle routine.
-
-<p align="center"><img src="images/agents_popup_window.png" width="400" alt="Agents panel listing all agents"></p>
-
-**Click the status bar to see all agents.** The agents panel lists every detected agent along with its current status — Thinking, Using tool, Responding, Idle, and more. Use it to quickly check who is busy and who is available.
-
-<p align="center"><img src="images/sub_agents_popup_window.png" width="400" alt="Sub-agents panel showing background tasks"></p>
-
-**Sub-agents handle delegated work.** Click the SUB-AGENTS tab to see background tasks that a main agent has spawned. This gives you visibility into parallel work happening behind the scenes.
-
-<p align="center"><img src="images/icon_counter.png" width="120" alt="Dock icon with active agent count badge"></p>
-
-**The app icon shows the active agent count.** A red badge on your dock or taskbar icon tells you how many agents are currently working. One glance is enough to know if something is running — no need to open the app.
-
-<p align="center"><img src="images/settings_general.png" width="400" alt="Settings — General tab"></p>
-
-**General settings let you control core behavior.** Open Settings from the top-left gear icon. The General tab includes scan interval, animation speed, max agents, and other global preferences.
-
-<p align="center"><img src="images/settings_discovery.png" width="400" alt="Settings — Discovery tab"></p>
-
-**Discovery settings configure how agents are found.** The Discovery tab controls process scanning parameters and log file monitoring for each supported agent type.
-
-<p align="center"><img src="images/settings_display.png" width="400" alt="Settings — Display tab"></p>
-
-**Display settings customize the visual experience.** The Display tab adjusts office layout, zoom level, speech bubble behavior, and other rendering preferences.
-
----
-
-## How It Works
-
-OfficeAI operates on a **zero-intrusion** principle — it only observes AI agents, never interferes with their work.
-
-```
-OS Processes (sysinfo)    Agent log files       Chrome Extension
-        │                       │               (MV3 + Native Messaging)
-        ▼                       ▼                       │
-  Process Scanner (2s)  Log Watcher (500ms)    Extension HTTP Server
-        │                       │               (localhost:7842)
-        └──────────┬────────────┴───────────────────────┘
-                   ▼
-           Agent Registry ──► Tauri IPC Events
-                   │
-        ┌──────────┴──────────┐
-        ▼                     ▼
-   Svelte UI             PixiJS Renderer
-   (overlay)             (isometric scene)
+```sh
+npm run dev
 ```
 
-1. **Process Scanner** discovers CLI agents via OS process list
-2. **Log Watcher** reads agent log files for status changes
-3. **Chrome Extension** observes browser AI chats (ChatGPT, Gemini, Claude.ai) via DOM MutationObserver
-4. **State Classifier** (FSM with debounce) determines agent state
-5. **Agent Registry** maintains state, emits Tauri IPC events, and updates the app icon badge
-6. **Frontend** renders agents as animated characters in an isometric office
+Откройте `http://localhost:1420`. Браузерный режим показывает встроенных демонстрационных агентов исходного OfficeAI; мониторинг реальных процессов доступен в desktop-приложении.
 
-The app icon badge displays the number of active agents directly on the dock (macOS) or taskbar (Linux), so you always know how many agents are working without switching to the app window.
+1. В панели «Контент-команда» уже введено «Подготовить 5 Reels на неделю».
+2. Нажмите «Добавить», затем «Запустить очередь».
+3. За ~18 секунд задача пройдёт Researcher → Strategist → Scriptwriter → Editor.
+4. Выберите задачу, чтобы увидеть статус, ответственного, этап и раскрыть результаты каждой роли.
+5. «Пауза» останавливает продвижение; повторный запуск продолжает с сохранённого состояния. При закрытии приложения выполнение прекращается. После открытия очередь всегда на паузе.
+6. Нажмите на карточку роли для открытия существующей панели агента. Кнопка с названием приложения сворачивает панель задач, освобождая обзор офиса.
 
-**Bug Report:** If you encounter a bug, open Settings and click **Bug Report** to save a diagnostic JSON file. Attach it to a [GitHub Issue](https://github.com/dykyi-roman/office-ai/issues) — no data is sent automatically.
+Все результаты обозначены как **демо**. Пять тем и сценариев о недвижимости — фиксированные учебные данные, а не актуальное исследование. Пользовательское название передаётся через все этапы, но мок-провайдер не генерирует новые темы по произвольному запросу.
 
----
+## Архитектура надстройки
 
-## Model Tiers
+```text
+TasksPanel.svelte
+   ↓ добавить / запуск / пауза
+queue.svelte.ts — один последовательный исполнитель, FIFO
+   ↓                          ↓
+engine.ts                     storage.ts
+детерминированные переходы    desktop: Tauri IPC → content_queue.rs
+и мок-результаты              browser: localStorage (JSON)
+   ↓
+bridge.ts — снимок четырёх виртуальных агентов
+   ├─ agents.svelte.ts → существующие панели агентов
+   └─ OfficeScene.ts → существующие PixiJS-персонажи
 
-When the backend receives a model name from agent logs (e.g. `"claude-opus-4-6"`), it classifies it into one of four tiers:
-
-| Tier         | Keywords in model name                                         | Examples                                  |
-|--------------|----------------------------------------------------------------|-------------------------------------------|
-| **Expert**   | `opus`, `ultra`, `gpt-4o` (no `-mini`), `o1-*`, `o3-*` (no `-mini`) | Claude Opus 4, GPT-4o, Gemini Ultra, o3   |
-| **Senior**   | `sonnet`, `pro`, `gpt-4` (not `gpt-4o`)                       | Claude Sonnet 4, GPT-4-turbo, Gemini Pro  |
-| **Middle**   | Everything else (fallback)                                     | Any unknown model                         |
-| **Junior**   | `haiku`, `nano`, `flash`, `gpt-3.5`, `-mini`                  | Claude Haiku 4, GPT-4o-mini, Gemini Flash |
-
-> **Check order matters:** Junior is checked first (so `-mini` catches `o1-mini`, `o3-mini` before Expert). Then Expert, Senior. Everything else — Middle.
-
-### Work Indicator
-
-When an agent is working (thinking, responding, tool_use), **three animated bouncing balls** appear above its sprite. The ball color is determined by model tier. Balls disappear when the agent finishes and transitions to idle.
-
-| Tier         | Color                      |
-|--------------|----------------------------|
-| **Expert**   | 🟡 Gold `#FFD700`       |
-| **Senior**   | 🔵 Blue `#4A90E2`       |
-| **Middle**   | 🟢 Green `#5CB85C`      |
-| **Junior**   | ⚪ Gray `#AAAAAA`       |
-
-Balls are positioned horizontally above the sprite head and animated with a staggered sine wave (bounce). Animation speed is controlled by the `animationSpeed` setting.
-
----
-
-## Agent Lifecycle
-
-The visual state of an agent directly reflects its process status:
-
-```
-                    ┌─────────────────────────────────┐
-                    │                                 │
-                    ▼                                 │
-┌──────┐    ┌──────────────┐    ┌──────────┐    ┌─────┴──────┐
-│ Idle │───▶│ Walking      │───▶│ Thinking │───▶│ Responding │
-│      │    │ to desk      │    │          │    │            │
-└──┬───┘    └──────────────┘    └────┬─────┘    └─────┬──────┘
-   │                                 │                │
-   │                                 ▼                ▼
-   │                           ┌──────────┐    ┌────────────┐
-   │                           │ Tool Use │    │ Collabora- │
-   │                           └────┬─────┘    │ tion       │
-   │                                │          └─────┬──────┘
-   │                                ▼                │
-   │                          ┌───────────┐          │
-   │◀─────────────────────────│ Task      │◀─────────┘
-   │                          │ Complete  │
-   │                          └───────────┘
-   │
-   │         ┌─────────┐    ┌──────────┐
-   └────────▶│  Error  │    │ Offline  │
-             └─────────┘    └──────────┘
+Существующий Rust discovery / parsers / registry → Tauri events → офис
 ```
 
-### State Table
+- Стадии: Researcher, Strategist, Scriptwriter, Editor. Каждый этап показывает `thinking`, затем `responding`, затем `task_complete`; не участвующие роли — `idle`. Завершённые роли сохраняют `task_complete` до следующей задачи.
+- Состояние задачи: `queued | running | complete`, индекс стадии, фаза, результаты по ролям, ID, название, дата создания. Переход раз в 1,5 секунды; одновременно выполняется одна задача.
+- Результаты предыдущих этапов входят в результаты следующих. История всех задач сохраняется.
+- Каждый переход сначала сохраняется, затем отображается. Команды сериализованы, повторный запуск не создаёт второго исполнителя. Ошибка записи останавливает очередь и показывается пользователю.
+- При загрузке JSON проверяется. Неизвестная версия или повреждённые данные не заменяются пустой очередью: выполнение блокируется с сообщением. Перед ручным исправлением сделайте копию файла.
+- Виртуальные ID имеют префикс `content-role:` и не используют PID. Они не регистрируются в системном сканере, не расходуют лимит отслеживаемых процессов и не создают платные вызовы. В общей статистике офиса видны также четыре виртуальные роли; их токены равны нулю.
+- `bridge.ts` немедленно отдаёт последний снимок поздно подключившейся сцене и освобождает подписку при её уничтожении. Сканер и парсеры мониторинга не изменены; добавлены отдельные команды хранения очереди. Для виртуальных ролей анимация управляется сохранённым состоянием и не сбрасывает `task_complete` своим таймером; существующие агенты используют прежнюю машину анимаций.
 
-| State               | Trigger                                          | Animation                                                  | Visual Indicator                                        |
-|---------------------|--------------------------------------------------|------------------------------------------------------------|---------------------------------------------------------|
-| **Idle**            | Process running, no active request               | Agent roams the office: cooler, kitchen, sofa, etc.        | Relaxed pose, subtle idle animation                     |
-| **Walking to desk** | New prompt/task received                         | Agent walks from current location to desk (A* pathfinding) | Walking animation                                       |
-| **Thinking**        | Waiting for LLM response (streaming not started) | Sitting at desk, typing animation                          | Colored bouncing balls above head (color by model tier) |
-| **Responding**      | Token streaming                                  | Active typing animation                                    | Speech bubble with response text preview                |
-| **Tool use**        | Agent executes shell command, reads files, etc.  | Reaches for folder / types in terminal                     | Colored bouncing balls above head                       |
-| **Collaboration**   | Multi-agent context or sub-agent spawned         | Agent sits at desk                                         | Status in data model; visual delegation *(planned)*     |
-| **Task complete**   | Response finished, transitioning to idle         | Agent stands up, walks back to previous location           | Bouncing balls disappear                                |
-| **Error**           | Request failed / crash                           | Agent grabs head, frustration gesture                      | Red exclamation mark                                    |
-| **Offline**         | Process terminated                               | Аgent go to the door                                       | Gray semi-transparent avatar                            |
+## Локальные данные
 
----
+Desktop: `content-queue.json` в каталоге данных приложения. На macOS:
 
-## Idle Zones
+```text
+~/Library/Application Support/com.dobrovolskiy.ai-office/content-queue.json
+```
 
-When an agent has no active task, it randomly roams between rest areas in the office:
+Запись через временный файл, `sync_all` и переименование. В браузере JSON хранится под ключом `dobrovolskiy-ai-office.queue.v1` в localStorage текущего origin. Desktop и browser используют разные хранилища. Очистка данных сайта удаляет браузерную очередь. MVP рассчитан на одно окно/экземпляр приложения; несколько одновременно запущенных экземпляров не координируют запись.
 
-| Location                            | Animation                                      |
-|-------------------------------------|------------------------------------------------|
-| **Water Cooler** (`water_cooler`)   | Agent pours and drinks water                   |
-| **Kitchen** (`kitchen`)             | Interacts with coffee machine                  |
-| **Sofa** (`sofa`)                   | Reads / scrolls phone                          |
-| **Meeting Room** (`meeting_room`)   | Whiteboard discussion (for multi-agent setups) |
-| **Standing Desk** (`standing_desk`) | Stretching / casual browsing                   |
-| **Bathroom** (`bathroom`)           | Agent stepped away                             |
-| **HR Zone** (`hr_zone`)             | Chatting at the HR stand                       |
-| **Lounge** (`lounge`)               | Relaxing in the lounge area                    |
+## Проверки и сборка
 
----
+```sh
+npm run check
+npm test
+cargo test --release --manifest-path src-tauri/Cargo.toml
+npm run tauri:build -- --bundles app  # macOS .app
+# npm run tauri:build               # установщики текущей платформы
+```
 
-## Agent Discovery
+Приложение: `src-tauri/target/release/bundle/macos/Dobrovolskiy AI Office.app`. Локальная сборка не нотарифицирована Apple. Windows/Linux в этой версии локально не проверялись. Исходные инструкции по платформам, мониторингу, настройкам и расширению браузера: [OfficeAI README](docs/UPSTREAM_README.md).
 
-The system uses different detection strategies depending on the agent type:
+Новые тесты: полный pipeline и 5 сценариев, FIFO, восстановление стадии из JSON, некорректные данные, уникальность виртуальных ролей, replay/отписка визуального моста, сохранение/замена файла и защита существующих данных при ошибке.
 
-| Agent Type              | Status        | Detection Method                                                                               | State Extraction                                                                      |
-|-------------------------|---------------|------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| **Claude Code (CLI)**   | Implemented   | Process scanning via `sysinfo` crate. Monitoring `~/.claude/projects/` directory               | Log file parsing: `user_prompt`, `assistant_start`, `tool_use`, `assistant_end`       |
-| **Gemini CLI**          | Implemented   | Process scanning (`gemini`, `node.*gemini`). Monitoring `~/.gemini/tmp/` directory              | JSON-array session parsing: `user`, `gemini`, `info` messages                          |
-| **Codex CLI**           | Implemented   | Process scanning (`codex`). Monitoring `~/.codex/sessions/` directory                          | JSONL parsing: `message`, `function_call_output`, `exec_result` events                 |
-| **Cursor (IDE)**        | Implemented   | Process scanning (`Cursor`) with TTY bypass for GUI apps. Monitoring `~/.cursor/ai-tracking/`  | File activity monitoring: `mtime` changes on AI tracking database                      |
-| **Windsurf (IDE)**      | Implemented   | Process scanning (`Windsurf`) with TTY bypass for GUI apps. Monitoring `~/.codeium/windsurf/cascade/` + `~/.codeium/implicit/` + `~/.codeium/cascade/` | File activity monitoring: `mtime` changes on Codeium protobuf files            |
-| **ChatGPT (Browser)**   | Implemented   | Chrome MV3 extension with DOM MutationObserver on `chatgpt.com`                                | CSS selector detection: stop button, streaming response, code interpreter               |
-| **Gemini (Browser)**    | Implemented   | Chrome MV3 extension with DOM MutationObserver on `gemini.google.com`                          | Web Component attributes: `model-response[loading]`, `mat-progress-spinner`             |
-| **Claude (Browser)**    | Implemented   | Chrome MV3 extension with DOM MutationObserver on `claude.ai`                                  | CSS selector detection: `[data-is-streaming]`, artifact panel, thinking indicator        |
+## Следующие этапы
 
----
+1. Ввести интерфейс провайдера `run(role, brief, previousResults, signal)` и заменить мок-результаты реальными ответами. Сетевые вызовы и секреты держать в Rust, ключи — в системном хранилище секретов. Добавить таймауты, отмену, лимиты стоимости, повторы с идемпотентными ID и сохранение ошибок на уровне этапа.
+2. Добавить реальные источники Researcher с URL, датами и проверкой фактов; структурированные сценарии и ручное согласование Editor перед любыми публикациями.
+3. Подключить аналитику Instagram отдельным адаптером после проверки актуальных возможностей и прав официального Meta API для конкретного аккаунта. Хранить снимки метрик по публикациям (просмотры, охват, вовлечённость, доступные метрики удержания), сопоставлять их с задачами и передавать Strategist. Конкретные разрешения и доступность метрик требуется проверить при интеграции.
+4. Для фонового выполнения и нескольких окон перенести исполнитель в Rust, добавить блокировку единственного экземпляра либо SQLite, миграции и экспорт/архив задач.
 
-## Browser Extension
+## Происхождение и лицензия
 
-OfficeAI includes a Chrome MV3 extension that tracks AI agent activity directly in browser tabs. It monitors **ChatGPT**, **Gemini**, and **Claude.ai** sessions in real time — each open chat appears as a separate employee in the office, just like CLI agents.
+Основано на [dykyi-roman/office-ai](https://github.com/dykyi-roman/office-ai), OfficeAI / Roman Dykyi. Исходный офис, графика и мониторинг сохранены. Это самостоятельная надстройка, не официальный релиз автора OfficeAI.
 
-<p align="center"><img src="images/browser.png" width="700" alt="Browser extension tracking ChatGPT, Gemini, and Claude agents"></p>
-
-**How it works:**
-
-- Content scripts use `MutationObserver` to detect DOM changes on AI chat pages (streaming responses, thinking indicators, tool use)
-- The background Service Worker bridges content scripts to a Native Messaging Host (Node.js)
-- The host forwards agent state via HTTP to the Tauri desktop app (`localhost:7842`)
-- Each browser tab gets a unique agent ID: `browser-{platform}-{hash}` (e.g. `browser-chatgpt-a1b2c3d4`)
-
-For full details — architecture, CSS selectors, detection algorithms, native messaging protocol — see [EXTENSION.md](docs/EXTENSION.md).
-
----
-
-## IDE Support
-
-OfficeAI natively supports **Cursor** and **Windsurf** — two popular AI-powered code editors. Their built-in AI assistants are detected automatically and appear as office employees, just like CLI agents.
-
-| IDE | Detection | Monitored Paths | State Extraction |
-|-----|-----------|-----------------|------------------|
-| **Cursor** | Process scanning (`Cursor`) with TTY bypass for GUI apps | `~/.cursor/ai-tracking/` | File activity monitoring: `mtime` changes on AI tracking database |
-| **Windsurf** | Process scanning (`Windsurf`) with TTY bypass for GUI apps | `~/.codeium/windsurf/cascade/`, `~/.codeium/implicit/`, `~/.codeium/cascade/` | File activity monitoring: `mtime` changes on Codeium protobuf files |
-
-**How it works:**
-
-- The process scanner detects running Cursor/Windsurf processes via OS process list. GUI apps bypass the TTY filter since they don't have a terminal attached.
-- The log watcher monitors IDE-specific directories for file activity changes (`mtime` polling).
-- Since IDE agents cannot signal task completion explicitly, a **15-second inactivity timeout** is used — if no file changes are detected within 15s, the agent transitions to idle.
-- Each Cursor session gets a unique agent ID: `log-cursor--{session-hash}`. Windsurf uses a fixed ID: `log-windsurf--activity`.
-
-**Setup:** No configuration needed — just launch Cursor or Windsurf and start using their AI features. OfficeAI will detect them automatically.
-
----
-
-## Troubleshooting
-
-- **Agent not appearing?** Verify the log root in **Settings > Discovery**. For example, Claude Code logs are usually in `~/.claude/projects/`.
-- **Process not detected?** Some agents run via `node` or `python`. Ensure your `agent_process_patterns` in settings include the correct regex for your environment.
-- **Diagnostic Log:** If you run into issues, go to **Settings > General** and click **Bug Report**. This generates a `diagnostic.json` file for debugging.
-
----
-
-## Non-Goals
-
-- The app **never** modifies CLI agent behavior, injects middleware, or requires config changes.
-- No network requests to external servers — all processing is local.
-- This is **not a CLI replacement** — the visualizer is a companion/monitor tool only.
-- Prompt data is **never stored or transmitted** — only metadata is used (state, model name, token counts).
-
----
-
-## Roadmap
-
-- [ ] **ChatGPT CLI Support** — integration with official and community-built CLIs.
-- [x] **Browser Model Tracking** — ChatGPT, Gemini, Claude.ai web sessions tracked via Chrome MV3 extension.
-- [ ] **Office Customization** — changeable floor plans, custom furniture, and skins.
-- [ ] **Collaboration Mode** — visual links/indicators when multiple agents are delegating tasks to each other.
-- [ ] **New Idle Zones** — gym area, library, and outdoor garden for more character variety.
-
----
-
-## Commands
-| Command               | Description                            |
-|-----------------------|----------------------------------------|
-| `make install`        | Install all dependencies (npm + cargo) |
-| `make dev`            | Full Tauri + Vite dev server           |
-| `make build`          | Production build (AppImage/DMG/MSI)    |
-| `make build-debug`    | Debug build (faster, no optimizations) |
-| `make build-frontend` | Build frontend only (to dist/)         |
-| `make test-js`        | TypeScript tests (vitest)              |
-| `make test-rust`      | Rust tests                             |
-| `make test-all`       | All tests (TS + Rust)                  |
-| `make test-watch`     | TypeScript tests in watch mode         |
-| `make bench`          | Run performance benchmarks             |
-| `make check`          | svelte-check + clippy + fmt            |
-| `make lint`           | Svelte type checker only               |
-| `make fmt`            | Format Rust code                       |
-| `make clippy`         | Rust linter (warnings as errors)       |
-| `make assets`         | Regenerate sprites + tiles + effects   |
-| `make icons`          | Generate Tauri app icons               |
-| `make clean`          | Remove dist/ + cargo clean             |
-| `make clean-all`      | Remove artifacts + node_modules        |
-
----
-
-## Tech Stack
-
-| Layer                  | Technology                               |
-|------------------------|------------------------------------------|
-| **Desktop runtime**    | Tauri v2 (Rust)                          |
-| **Frontend framework** | Svelte 5 (runes)                         |
-| **2D rendering**       | PixiJS v8 (isometric)                    |
-| **Process discovery**  | sysinfo (Rust)                           |
-| **Async runtime**      | Tokio                                    |
-| **IPC**                | Tauri events + commands                  |
-| **Browser extension**  | Chrome MV3 + Native Messaging            |
-| **Config storage**     | TOML (`~/.config/office-ai/config.toml`) |
-| **TS testing**         | Vitest (~411 tests)                      |
-| **Rust testing**       | cargo test (~371 tests)                  |
-
----
-
-## Cross-Platform Support
-
-| Feature                             | macOS      | Linux           | Windows |
-|-------------------------------------|------------|-----------------|---------|
-| Process scanning                    | Yes        | Yes             | Yes     |
-| Agent log parsing                   | Yes        | Yes             | Yes     |
-| Isometric office rendering          | Yes        | Yes             | Yes     |
-| App icon badge (active agent count) | Yes (Dock) | Yes (Unity/KDE) | No      |
-| Chrome Extension                    | Yes        | Yes             | Planned |
-| Production build                    | DMG        | AppImage        | MSI     |
-
-The app icon badge shows the number of currently active agents (not idle, not offline) as a numeric indicator on the dock/taskbar icon. When no agents are active, the badge is removed. The badge updates automatically on every agent state change — registration, status transition, and removal.
-
----
-
-## Documentation
-
-| Document                                  | Description                                               |
-|-------------------------------------------|-----------------------------------------------------------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)   | Detailed system architecture, data structures, algorithms |
-| [FRONTEND.md](docs/FRONTEND.md)           | TypeScript frontend — Svelte 5, PixiJS v8, stores, UI     |
-| [BACKEND.md](docs/BACKEND.md)             | Rust backend — process scanner, log parser, IPC           |
-| [CONFIGURATION.md](docs/CONFIGURATION.md) | All settings explained (defaults, behavior)               |
-| [EXTENSION.md](docs/EXTENSION.md)         | Chrome extension — setup, architecture, detection         |
-| [TESTING.md](docs/TESTING.md)             | Test structure, commands, coverage, CI/CD                 |
-| [CHANGELOG.md](CHANGELOG.md)               | Project history, version changes, and release notes       |
-| [CONTRIBUTING.md](CONTRIBUTING.md)        | How to contribute, code style, commit conventions         |
-| [LICENSE](LICENSE)                        | MIT License                                               |
+Оригинальный [LICENSE](LICENSE) с `Copyright (c) 2026 OfficeAI` сохранён без изменений. Новые изменения также распространяются по MIT; см. [NOTICE](NOTICE). Оригинальная документация сохранена в `docs/UPSTREAM_README.md`.

@@ -11,6 +11,7 @@ import {
   Ticker,
   type Spritesheet,
 } from "pixi.js";
+import { isContentRole } from "$lib/orchestration/bridge";
 import type { AgentState, Status, Tier } from "$lib/types/agent";
 import type { GridPosition } from "$lib/types/office";
 import { getSetting } from "$lib/stores/settings.svelte";
@@ -20,9 +21,6 @@ import { SpeechBubble } from "./SpeechBubble";
 
 /** Walking speed in pixels per second */
 const WALK_SPEED_PX = 120;
-
-/** All agents render with the same visual tier (green hoodie) regardless of actual tier */
-const VISUAL_TIER: Tier = "middle";
 
 /** Thinking dot fill colour per tier — must match tierColor() in ui/utils.ts */
 const TIER_DOT_COLOR: Record<Tier, number> = {
@@ -121,7 +119,7 @@ export class AgentSprite extends Container {
     this.addChild(this.speechBubble);
 
     // Animation FSM
-    this.animController = new AnimationController(this);
+    this.animController = new AnimationController(this, isContentRole(agent.id));
 
     // Ticker for walk interpolation
     Ticker.shared.add(this.onTick, this);

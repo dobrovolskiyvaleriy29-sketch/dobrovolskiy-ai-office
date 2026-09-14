@@ -3,6 +3,7 @@
 
 #[macro_use]
 mod logger;
+mod content_queue;
 mod discovery;
 mod error;
 mod interceptor;
@@ -58,6 +59,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
+            content_queue::load_content_queue,
+            content_queue::save_content_queue,
             get_all_agents,
             get_agent,
             get_config,

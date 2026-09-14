@@ -1,5 +1,7 @@
 // Reactive agent state store — subscribes to Tauri IPC events
 
+import { subscribeRoles, isContentRole } from "$lib/orchestration/bridge";
+
 import type { AgentState, SubAgentInfo, Tier } from "$lib/types/index";
 import {
   TAURI_EVENTS,
@@ -100,13 +102,13 @@ let agents = $state<Map<string, AgentState>>(new Map());
 // Derived: agents that are actively working (not idle or offline)
 const activeAgents = $derived(
   [...agents.values()].filter(
-    (a) => a.status !== "idle" && a.status !== "offline",
+    (a) => a.status !== "idle" && a.status !== "offline" && !(isContentRole(a.id) && a.status === "task_complete"),
   ),
 );
 
 // Derived: agents that are idle
 const idleAgents = $derived(
-  [...agents.values()].filter((a) => a.status === "idle"),
+  [...agents.values()].filter((a) => a.status === "idle" || (isContentRole(a.id) && a.status === "task_complete")),
 );
 
 // Derived: agents grouped by tier
@@ -153,7 +155,7 @@ function applyMockData(): void {
 
 function addAgent(agent: AgentState): void {
   // Enforce maxAgents limit — skip if already at capacity (unless updating existing)
-  if (!agents.has(agent.id) && agents.size >= getSetting("maxAgents")) {
+  if (!agents.has(agent.id) && [...agents.keys()].filter(id => !isContentRole(id)).length >= getSetting("maxAgents")) {
     return;
   }
   agents = new Map(agents).set(agent.id, agent);
@@ -180,6 +182,11 @@ let initialized = false;
 export async function initAgentsStore(): Promise<void> {
   if (initialized) return;
   initialized = true;
+  subscribeRoles(roles => {
+    const next = new Map(agents);
+    for (const role of roles) next.set(role.id, role);
+    agents = next;
+  });
 
   try {
     // Attempt to import Tauri listen — fails gracefully in browser dev mode

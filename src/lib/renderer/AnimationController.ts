@@ -196,7 +196,8 @@ export class AnimationController {
   private autoTimer: ReturnType<typeof setTimeout> | null = null;
   private thinkingVisible = false;
 
-  constructor(private readonly sprite: AnimatableSprite) {}
+  // Content roles replay durable snapshots, including completion after reload.
+  constructor(private readonly sprite: AnimatableSprite, private readonly externallyDriven = false) {}
 
   /**
    * Request a state transition.
@@ -206,7 +207,7 @@ export class AnimationController {
    * @param next - Target status
    */
   transition(next: Status): void {
-    if (!this.isTransitionValid(this.currentStatus, next)) {
+    if (!this.externallyDriven && !this.isTransitionValid(this.currentStatus, next)) {
       console.warn(
         `[AnimationController] Invalid transition: ${this.currentStatus} -> ${next}`
       );
@@ -294,7 +295,7 @@ export class AnimationController {
     }
 
     // Schedule auto-transition if defined
-    if (enterState.autoTransition !== undefined) {
+    if (!this.externallyDriven && enterState.autoTransition !== undefined) {
       const { to, afterMs } = enterState.autoTransition;
       this.autoTimer = setTimeout(() => {
         this.transition(to);

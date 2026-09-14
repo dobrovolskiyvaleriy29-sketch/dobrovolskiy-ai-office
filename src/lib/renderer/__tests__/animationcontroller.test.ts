@@ -208,3 +208,24 @@ describe("test_auto_transition_task_complete", () => {
     ctrl.destroy();
   });
 });
+
+describe('content role snapshot animation', () => {
+  it('restores completion directly and preserves it until the next task', () => {
+    vi.useFakeTimers();
+    const ctrl = new AnimationController(makeMockSprite(), true);
+    ctrl.transition('task_complete');
+    vi.advanceTimersByTime(10000);
+    expect(ctrl.getStatus()).toBe('task_complete');
+    ctrl.transition('thinking');
+    expect(ctrl.getStatus()).toBe('thinking');
+    ctrl.destroy(); vi.useRealTimers();
+  });
+  it('shows the latest completion after arriving at a desk', () => {
+    const ctrl = new AnimationController(makeMockSprite(), true);
+    ctrl.transition('walking_to_desk'); ctrl.walkStarted();
+    ctrl.transition('thinking'); ctrl.transition('responding'); ctrl.transition('task_complete');
+    ctrl.walkComplete();
+    expect(ctrl.getStatus()).toBe('task_complete');
+    ctrl.destroy();
+  });
+});
